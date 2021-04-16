@@ -2,7 +2,7 @@ import { FlowObject } from "./types/flow-object.type";
 import { FlowStatus } from './types/flow-status.const'
 import { FlowInstance } from './types/flow-instance.type'
 import { FlowCallBackFunction } from "./types/flow-callback-function.type";
-import { Flows } from ".";
+import { FlowInterceptor } from "./types/flow-interceptor.type";
 /**
  * Classetta di comunicazione by flow o by public/subscribe di Alessandro Avolio 
                                   .
@@ -23,10 +23,6 @@ jgs  |[:::]|                '-----'
      '-----'
  */
 
-/*
-     TODO gestione back e flow con callback
-     */
-
 export default class FlowCommunicator {
 
   /**
@@ -44,6 +40,10 @@ export default class FlowCommunicator {
    */
   private isDebug = false;
 
+  /**
+   * list of interceptors
+   */
+  private interceptors: FlowInterceptor[] = [];
 
   /**
    * Reset all flows
@@ -107,6 +107,9 @@ export default class FlowCommunicator {
       cache.status = FlowStatus.DONE; //set status to done
     }
 
+    if(this.notify(flowName, activeFlow,"BACK")){ //if return true -> block because it's manage by interceptor
+      return;
+    }
 
     //if it's a url go back
     if (activeFlow.callBackUrl) {
@@ -198,28 +201,32 @@ export default class FlowCommunicator {
     } else {
       newFlow = { cache: cache, callBackFn: callBack };
     }
-
+    if(this.notify(flowName,newFlow,"ENABLE")){ //if return true -> block because it's manage by interceptor
+      return;
+    }
     this.activeFlows[flowName].push(newFlow);
     this.lastActiveFlowName = flowName;
+  
     this.log(`Flow >> enableFlow('${flowName}`, callBack, extraData);
   }
+  
 
 
   /**
    * Disable a flow
    */
   disableFlow(flowName: string) {
-
+    let deleted;
     if (this.activeFlows[flowName]) {
-      this.activeFlows[flowName].pop();
+      deleted=this.activeFlows[flowName].pop();
     }
     if (this.activeFlows[flowName].length == 0) {
       delete this.activeFlows[flowName];
       this.log(`Flow > disableFlow('${flowName}') => delete flow`);
     } else {
-
       this.log(`Flow > disableFlow('${flowName}') => pop flow. There are still ${this.activeFlows[flowName].length} into stack`);
     }
+    this.notify(flowName,deleted,"DISABLE");
 
   }
 
@@ -243,4 +250,25 @@ export default class FlowCommunicator {
       console.log(...args);
     }
   }
+
+
+  addInterceptor(interceptor: FlowInterceptor) {
+    this.interceptors.push(interceptor);
+  }
+
+  removeInterceptor(interceptor: FlowInterceptor) {
+    let index = this.interceptors.indexOf(interceptor);
+    if (index >= 0) {
+      this.interceptors.splice(index, 1);
+    }
+  }
+
+  notify(flowName: string, flowInstance: FlowInstance, event: "ENABLE"|"DISABLE") {
+    let stop=false;
+    for (let i = 0; i < this.interceptors.length &&!stop; i++) {
+      stop=!!this.interceptors[i](flowName,flowInstance,event);
+    }
+    return stop;
+  }
+  
 }
