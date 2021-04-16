@@ -263,7 +263,7 @@ export default class FlowCommunicator {
     }
   }
 
-  notify(flowName: string, flowInstance: FlowInstance, event: "ENABLE"|"DISABLE") {
+  notify(flowName: string, flowInstance: FlowInstance, event: "ENABLE"|"DISABLE"|"BACK") {
     let stop=false;
     for (let i = 0; i < this.interceptors.length &&!stop; i++) {
       stop=!!this.interceptors[i](flowName,flowInstance,event);
