@@ -1,6 +1,6 @@
 import { FlowStatus } from "./flow-status.const";
 
-export default interface FlowObject<OutputType>{
+export type FlowObject<OutputType>={
     output:OutputType;
     status: FlowStatus;
 }

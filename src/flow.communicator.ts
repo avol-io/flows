@@ -1,6 +1,8 @@
-import FlowObject from "./types/flow-object.type";
-import {FlowStatus} from './types/flow-status.const'
-export type FlowCallBack = (cache: FlowObject<any>) => undefined;
+import { FlowObject } from "./types/flow-object.type";
+import { FlowStatus } from './types/flow-status.const'
+import { FlowInstance } from './types/flow-instance.type'
+import { FlowCallBackFunction } from "./types/flow-callback-function.type";
+import { Flows } from ".";
 /**
  * Classetta di comunicazione by flow o by public/subscribe di Alessandro Avolio 
                                   .
@@ -26,31 +28,30 @@ jgs  |[:::]|                '-----'
      */
 
 export default class FlowCommunicator {
-  /**
-   * Cache of flows. Key it's flowName and value it's its flowObject
-   */
-  private cache: {
-    [key: string]: Array<FlowObject<any>> | FlowObject<any>;
-  } = {};
 
   /**
-   * Meta information about all active flow. Keys are flowName and value it's its callback url
+   * Track tha last active flow name
    */
-  private activeFlows: { [key: string]: string | FlowCallBack | Array<string| FlowCallBack>  } = {};
+  private lastActiveFlowName: string;
 
+  /**
+   * Meta informations about all active flow. Keys are flowName and value it's a flow instance array
+   */
+  private activeFlows: { [key: string]: Array<FlowInstance> } = {};
+
+  /**
+   * flag that define if debug it's enable
+   */
   private isDebug = false;
 
-  constructor() {
-    // console.log("FlowCommunicator new instance active");
-  }
 
   /**
    * Reset all flows
    */
-  reset(){
-    this.cache={};
-    this.activeFlows={};
+  reset() {
+    this.activeFlows = {};
   }
+
   /**
    * Enable or disable debug
    */
@@ -59,16 +60,17 @@ export default class FlowCommunicator {
   }
 
   /**
-   * It's return the most recent FlowObject of flow
+   * It's return the most recent FlowObject for a specific flow
    * @param flowName identify flow
    * @returns the most recent FlowObject of flow
    */
   private getActualCache(flowName: string): FlowObject<any> {
     let cache;
-    if (Array.isArray(this.cache[flowName])) {
-      cache = this.cache[flowName][this.cache[flowName]["length"] - 1];
-    } else {
-      cache = this.cache[flowName] as FlowObject<any>;
+    cache = this.getActualActiveFlow(flowName).cache;
+    if (!cache) {
+      throw new Error("Flow >> Not exist a flow with name: " +
+        flowName);
+
     }
     this.log(`Flow >> getActualCache('${flowName}') => `, cache);
     return cache;
@@ -79,92 +81,83 @@ export default class FlowCommunicator {
    * @param flowName identify flow
    * @returns the most recent FlowObject of flow
    */
-   private getActualActiveFlows(flowName: string): FlowCallBack | string {
+  private getActualActiveFlow(flowName: string): FlowInstance {
     let flow;
-    if (Array.isArray(this.activeFlows[flowName])) {
-      flow = this.activeFlows[flowName][this.activeFlows[flowName]["length"] - 1];
-    } else {
-      flow = this.activeFlows[flowName] as FlowCallBack;
+    flow = this.activeFlows[flowName][this.activeFlows[flowName]["length"] - 1];
+    if (!flow) {
+      throw new Error("Flow with name " + flowName + " not exist");
     }
     this.log(`Flow >> getActualActiveFlows('${flowName}') => `, flow);
     return flow;
   }
 
   /**
-   * This method return to the origin page of specific flow and put input obj as output of flow object
+   * This method return to the origin page/call the callback function of specific flow and put input obj as output of flow object
    * @param flowName identify flow
    * @param obj  object to return as output of flow (put undefined if there isn't output)
    */
   goBack<OutputType>(flowName: string, obj: OutputType) {
+    //load the flow
+    let activeFlow = this.getActualActiveFlow(flowName);
     //load the cache
-    let cache = this.getActualCache(flowName);
+    let cache = activeFlow.cache;
     if (cache) {
       //if exist
-      cache["output"] = obj; //set output
-      cache["status"] = FlowStatus.DONE; //set status to done
+      cache.output = obj; //set output
+      cache.status = FlowStatus.DONE; //set status to done
     }
-    let activeFlow=this.getActualActiveFlows(flowName);
-    if (activeFlow) {
-      //if it's a url go back
-      if (typeof activeFlow === "string") {
-        this.log(
-          'Flow >> Go back for flow "' +
-            flowName +
-            '" to url: ' +
-            activeFlow +
-            " with flow object:",
-          cache
-        );
 
-        window.history.pushState("", "", activeFlow as string);
-        history.back();
-        history.forward();
-      } else {
-        this.log(
-          'Flow >> Callback for flow "' + flowName + +" with flow object:",
-          cache
-        );
 
-        //otherwise call it
-        (activeFlow as FlowCallBack)(cache);
-      }
+    //if it's a url go back
+    if (activeFlow.callBackUrl) {
+      this.log(
+        'Flow >> Go back for flow "' +
+        flowName +
+        '" to url: ' +
+        activeFlow +
+        " with flow object:",
+        cache
+      );
+
+      window.history.pushState("", "", activeFlow.callBackUrl);
+      history.back();
+      history.forward();
+    } else if (activeFlow.callBackUrl) {
+      this.log(
+        'Flow >> Callback for flow "' + flowName + +" with flow object:",
+        cache
+      );
+
+      //otherwise call it
+      activeFlow.callBackFn(cache);
+
     } else {
       console.error(
-        "\t\t Flow >> There is not url to go back for " + flowName,
-        ". The active flow are:",
+        "\t\t Flow >> There is not url to go back or callback function for " + flowName,
+        ". The active flows are:",
         this.activeFlows
       );
     }
   }
 
   /**
-   *  Add extra datato to a flow
+   *  Add extra data to to a flow
    * @param flowName identify flow
    * @param dataKey  key to identify extra data
    * @param obj extra data object
    */
   addExtraDataToFlow<Type>(flowName: string, dataKey: string, obj: Type) {
-    // if (this.cache[flowName]) {
-    //   this.cache[flowName][dataKey] = obj;
-    // } else {
-    //   this.cache[flowName] = {};
-    //   this.cache[flowName][dataKey] = obj;
-    // }
 
     //load the cache
     let cache = this.getActualCache(flowName);
-    if(!cache){
-      console.warn(  "Flow >> Not exist a flow with name: " +
-      flowName);
-      return;
-    }
+
     if (cache[dataKey]) {
       console.warn(
         "Flow >> On " +
-          flowName +
-          " it' just present a extraData " +
-          dataKey +
-          ". I just overwrite it!"
+        flowName +
+        " it' just present a extraData " +
+        dataKey +
+        ". I just overwrite it!"
       );
     }
     cache[dataKey] = obj;
@@ -173,7 +166,7 @@ export default class FlowCommunicator {
   /**
    * Get access to flow object
    * @param flowName identify flow
-   * @param disableFlow will disable the flow after you take flow object (userful when you take object in origin page after back)
+   * @param disableFlow will disable the flow after you take flow object (useful when you take object in origin page after back)
    * @returns
    */
   getFlowObject<FlowObject>(flowName: string, disableFlow = false): FlowObject {
@@ -187,51 +180,47 @@ export default class FlowCommunicator {
 
   /**
    * Enable a new flow
+   * @param flowName identify flow
+   * @param callBack the url to navigate back or a callback function. If undefined will be automatically set with window.location.href
+   * @param extraData if you want add some extra data directly on flow creation
    */
-  enableFlow(flowName: string, urlCallBack?) {
-    if(Array.isArray(this.activeFlows[flowName])){
-      (this.activeFlows[flowName]as Array<string|FlowCallBack> ).push(urlCallBack)
-    }else{
-      if( this.activeFlows[flowName]){
-        this.activeFlows[flowName]=[this.activeFlows[flowName], urlCallBack || window.location.href];
-      }else{
-        this.activeFlows[flowName] = urlCallBack || window.location.href; //window.location.href.split("#")[1];
-      }
+  enableFlow(flowName: string, callBack?: string | FlowCallBackFunction, extraData?: any) {
+    let flow = this.getActualActiveFlow(flowName);
+    if (!flow) {
+      this.activeFlows[flowName] = [];
     }
-   
+    // ERROR!!quest è cache
+    let newFlow: FlowInstance;
+    let cache: FlowObject<any> = { output: undefined, status: FlowStatus.PROGRESS };
 
-    //manage cache
-    this.createCache(flowName);
-    this.log(`Flow >> enableFlow('${flowName}', '${urlCallBack}') `);
-  }
-  private createCache(flowName: string) {
-    let newCache = { output: undefined, status: FlowStatus.PROGRESS };
-    if (!this.getActualCache(flowName)) {
-      //if not exist a create new one
-      this.cache[flowName] = newCache;
+    if (typeof callBack === "string") {
+      newFlow = { cache: cache, callBackUrl: callBack };
     } else {
-      //if exist i have to push new one in the array or create a stack if isn't.
-      if (!Array.isArray(this.cache[flowName])) {
-        this.cache[flowName] = [this.cache[flowName] as FlowObject<any>];
-      }
-      (this.cache[flowName] as Array<FlowObject<any>>).push(newCache);
+      newFlow = { cache: cache, callBackFn: callBack };
     }
+
+    this.activeFlows[flowName].push(newFlow);
+    this.lastActiveFlowName = flowName;
+    this.log(`Flow >> enableFlow('${flowName}`, callBack, extraData);
   }
+
 
   /**
    * Disable a flow
    */
   disableFlow(flowName: string) {
-    if(Array.isArray(this.cache[flowName]) && (this.cache[flowName] as Array<FlowObject<any>>).length>1){
-      (this.activeFlows[flowName] as Array<string|FlowCallBack>).pop();
-      (this.cache[flowName] as Array<FlowObject<any>>).pop();
-      this.log(`Flow > disableFlow('${flowName}') => pop flow. There are still ${this.activeFlows[flowName].length} into stack`);
-    }else{
-      delete this.activeFlows[flowName];
-       delete this.cache[flowName];
-       this.log(`Flow > disableFlow('${flowName}') => delete flow`);
+
+    if (this.activeFlows[flowName]) {
+      this.activeFlows[flowName].pop();
     }
-    
+    if (this.activeFlows[flowName].length == 0) {
+      delete this.activeFlows[flowName];
+      this.log(`Flow > disableFlow('${flowName}') => delete flow`);
+    } else {
+
+      this.log(`Flow > disableFlow('${flowName}') => pop flow. There are still ${this.activeFlows[flowName].length} into stack`);
+    }
+
   }
 
   /**
@@ -239,11 +228,17 @@ export default class FlowCommunicator {
    * @param flowName  identify the flow
    * @returns true if flow it's active
    */
-  isFlowActive(flowName: string) {
-    return !!this.activeFlows && this.activeFlows[flowName];
+  isFlowActive(flowName: string | string[]) {
+    if (!Array.isArray(flowName)) {
+      flowName = [flowName];
+    }
+    if (flowName.indexOf(this.lastActiveFlowName) >= 0) {
+      return this.lastActiveFlowName;
+    };
+    return false;
   }
 
-  private log(...args) {
+  private log(...args: any[]) {
     if (this.isDebug) {
       console.log(...args);
     }
