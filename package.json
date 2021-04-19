@@ -6,7 +6,7 @@
   "typings": "lib/index",
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "jest ",
     "test:badges": "yarn run test  && jest-coverage-badges"
   },
   "lint-staged": {

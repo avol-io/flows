@@ -2,7 +2,7 @@ import FlowCommunicator from "./flow.communicator"
 
 
 
-export const Flows:FlowCommunicator = window['Flow']?window['Flow']:window['Flow']=new FlowCommunicator();
+export const Flows:FlowCommunicator = window['Flows']?window['Flows']:window['Flows']=new FlowCommunicator();
 
 export  * from "./types/flow-object.type";
 export  * from "./types/flow-interceptor.type";

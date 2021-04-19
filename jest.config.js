@@ -8,7 +8,7 @@ module.exports = {
     "!**/vendor/**"
   ],
   "coverageReporters": [
-    "json-summary", 
+    "json-summary","lcov" 
   ],
   "testURL": "http://www.avol.io"
 };

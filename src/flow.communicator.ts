@@ -51,6 +51,7 @@ export default class FlowCommunicator {
   reset() {
     this.activeFlows = {};
     this.lastActiveFlowName=[];
+    this.interceptors=[];
   }
 
   /**
@@ -70,11 +71,11 @@ export default class FlowCommunicator {
     let flow=this.getActualActiveFlow(flowName);
     if(!flow){return}
     cache = flow.cache;
-    if (!cache) {
-      throw new Error("Flow >> Not exist a flow with name: " +
-        flowName);
+    // if (!cache) {
+    //   throw new Error("Flow >> Not exist a flow with name: " +
+    //     flowName);
 
-    }
+    // }
     this.log(`Flow >> getActualCache('${flowName}') => `, cache);
     return cache;
   }
@@ -108,6 +109,7 @@ export default class FlowCommunicator {
   goBack<OutputType>(flowName: string, obj: OutputType) {
     //load the flow
     let activeFlow = this.getActualActiveFlow(flowName);
+   
     //load the cache
     let cache = activeFlow.cache;
     if (cache) {
@@ -119,7 +121,7 @@ export default class FlowCommunicator {
     if(this.notify(flowName, activeFlow,"BACK")){ //if return true -> block because it's manage by interceptor
       return;
     }
-
+   
     //if it's a url go back
     if (activeFlow.callBackUrl) {
       this.log(
@@ -134,7 +136,7 @@ export default class FlowCommunicator {
       window.history.pushState("", "", activeFlow.callBackUrl);
       history.back();
       history.forward();
-    } else if (activeFlow.callBackUrl) {
+    } else if (activeFlow.callBackFn) {
       this.log(
         'Flow >> Callback for flow "' + flowName + +" with flow object:",
         cache
@@ -226,6 +228,9 @@ export default class FlowCommunicator {
    * Disable a flow
    */
   disableFlow(flowName: string) {
+    if(this.notify(flowName,this.getActualActiveFlow(flowName),"DISABLE")){ //if return true -> block because it's manage by interceptor
+      return;
+    }
     let deleted;
     if (this.activeFlows[flowName]) {
       deleted=this.activeFlows[flowName].pop();
@@ -245,7 +250,7 @@ export default class FlowCommunicator {
         break;
       }
     }
-    this.notify(flowName,deleted,"DISABLE");
+   
 
   }
 
