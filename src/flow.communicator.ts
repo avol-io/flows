@@ -28,7 +28,7 @@ export default class FlowCommunicator {
   /**
    * Track tha last active flow name
    */
-  private lastActiveFlowName: string;
+  private lastActiveFlowName: string[]=[];
 
   /**
    * Meta informations about all active flow. Keys are flowName and value it's a flow instance array
@@ -50,6 +50,7 @@ export default class FlowCommunicator {
    */
   reset() {
     this.activeFlows = {};
+    this.lastActiveFlowName=[];
   }
 
   /**
@@ -66,7 +67,9 @@ export default class FlowCommunicator {
    */
   private getActualCache(flowName: string): FlowObject<any> {
     let cache;
-    cache = this.getActualActiveFlow(flowName).cache;
+    let flow=this.getActualActiveFlow(flowName);
+    if(!flow){return}
+    cache = flow.cache;
     if (!cache) {
       throw new Error("Flow >> Not exist a flow with name: " +
         flowName);
@@ -81,12 +84,18 @@ export default class FlowCommunicator {
    * @param flowName identify flow
    * @returns the most recent FlowObject of flow
    */
-  private getActualActiveFlow(flowName: string): FlowInstance {
+  private getActualActiveFlow(flowName: string, checkForNew=false): FlowInstance {
     let flow;
-    flow = this.activeFlows[flowName][this.activeFlows[flowName]["length"] - 1];
-    if (!flow) {
-      throw new Error("Flow with name " + flowName + " not exist");
+    if (this.activeFlows[flowName]) {
+      flow = this.activeFlows[flowName][this.activeFlows[flowName].length - 1]
+    }else if(!checkForNew){
+    
+        console.error(
+          "Flow >> Not exist a flow with name: "+flowName 
+        );
+        return;
     }
+    
     this.log(`Flow >> getActualActiveFlows('${flowName}') => `, flow);
     return flow;
   }
@@ -153,7 +162,7 @@ export default class FlowCommunicator {
 
     //load the cache
     let cache = this.getActualCache(flowName);
-
+    if(!cache){return}
     if (cache[dataKey]) {
       console.warn(
         "Flow >> On " +
@@ -188,15 +197,16 @@ export default class FlowCommunicator {
    * @param extraData if you want add some extra data directly on flow creation
    */
   enableFlow(flowName: string, callBack?: string | FlowCallBackFunction, extraData?: any) {
-    let flow = this.getActualActiveFlow(flowName);
+    let flow = this.getActualActiveFlow(flowName,true);
     if (!flow) {
       this.activeFlows[flowName] = [];
     }
     // ERROR!!quest è cache
     let newFlow: FlowInstance;
     let cache: FlowObject<any> = { output: undefined, status: FlowStatus.PROGRESS };
-
-    if (typeof callBack === "string") {
+    if(!callBack){
+      newFlow = { cache: cache, callBackUrl: window.location.href };
+    }else if (typeof callBack === "string") {
       newFlow = { cache: cache, callBackUrl: callBack };
     } else {
       newFlow = { cache: cache, callBackFn: callBack };
@@ -205,7 +215,7 @@ export default class FlowCommunicator {
       return;
     }
     this.activeFlows[flowName].push(newFlow);
-    this.lastActiveFlowName = flowName;
+    this.lastActiveFlowName.push(flowName);
   
     this.log(`Flow >> enableFlow('${flowName}`, callBack, extraData);
   }
@@ -226,6 +236,15 @@ export default class FlowCommunicator {
     } else {
       this.log(`Flow > disableFlow('${flowName}') => pop flow. There are still ${this.activeFlows[flowName].length} into stack`);
     }
+    
+    //clean the last occurrence of flowName
+    for (let index = this.lastActiveFlowName.length; index > 0; index--) {
+      const element = this.lastActiveFlowName[index];
+      if(element===flowName){
+        this.lastActiveFlowName.splice(index,1);
+        break;
+      }
+    }
     this.notify(flowName,deleted,"DISABLE");
 
   }
@@ -233,18 +252,28 @@ export default class FlowCommunicator {
   /**
    * Told you if there is an active flow with flowName
    * @param flowName  identify the flow
-   * @returns true if flow it's active
+   * @returns true if flow it's active and only 1 flowName in input, otherwise the most recent flow active
    */
-  isFlowActive(flowName: string | string[]) {
-    if (!Array.isArray(flowName)) {
-      flowName = [flowName];
+  isFlowActive(...flowName: string[]) {
+    let lastName=this.getLastActiveFlowName();
+    if(flowName.length==1){
+      return lastName===flowName[0];
     }
-    if (flowName.indexOf(this.lastActiveFlowName) >= 0) {
-      return this.lastActiveFlowName;
+    if (flowName.indexOf(lastName) >= 0) {
+      return lastName;
     };
     return false;
   }
 
+  /**
+   * it returns last active flow name if exist or undefined
+   * @returns last active flow name if exist or undefined
+   */
+  private getLastActiveFlowName(){
+    if(this.lastActiveFlowName.length>0){
+      return this.lastActiveFlowName[this.lastActiveFlowName.length-1];
+    }
+  }
   private log(...args: any[]) {
     if (this.isDebug) {
       console.log(...args);

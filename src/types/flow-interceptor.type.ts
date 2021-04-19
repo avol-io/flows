@@ -1,5 +1,3 @@
-
-import {FlowObject} from "./flow-object.type";
 import {FlowInstance} from "./flow-instance.type";
 
 /**
