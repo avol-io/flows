@@ -203,9 +203,9 @@ export default class FlowCommunicator {
     if (!flow) {
       this.activeFlows[flowName] = [];
     }
-    // ERROR!!quest è cache
+    
     let newFlow: FlowInstance;
-    let cache: FlowObject<any> = { output: undefined, status: FlowStatus.PROGRESS };
+    let cache: FlowObject<any> = { output: undefined, status: FlowStatus.PROGRESS, ...extraData };
     if(!callBack){
       newFlow = { cache: cache, callBackUrl: window.location.href };
     }else if (typeof callBack === "string") {

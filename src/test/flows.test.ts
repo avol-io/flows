@@ -35,6 +35,11 @@ describe("Enable flow", () => {
         expect(Flows['activeFlows']['first-flow'][0].callBackFn).toEqual(callBack);
         expect(Flows.getFlowObject("first-flow")).toEqual({ "output": undefined, "status": FlowStatus.PROGRESS });
     });
+    test("enable flow with extra data",()=>{
+        Flows.enableFlow("first-flow", 'http://github.com',{duck:true});
+        expect(Flows['activeFlows']['first-flow'][0]['callBackUrl']).toEqual("http://github.com");
+        expect(Flows.getFlowObject("first-flow")).toEqual({ "output": undefined, "status": FlowStatus.PROGRESS, "duck":true });
+    })
 })
 
 

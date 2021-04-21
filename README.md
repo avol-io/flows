@@ -8,3 +8,6 @@ A-> va (flusso1) a B -> C e ci va ad A per andare ad A il flusso 1 è wip mentre
 
 
 A->getAuto B->nuova Auto C -> persona A -> getAuto B -> prende l'ultimo sistema a stack quando esiste già uno flusso non chiuso.
+
+
+anche enable with extra
