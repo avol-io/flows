@@ -2,8 +2,8 @@
   "name": "flows",
   "version": "1.0.0-beta1",
   "description": "Flows is a library that helps process-oriented communication between pages/components of a Single Page Application or Micro Front-end. ",
-  "main": "lib/index.js",
-  "typings": "lib/index",
+  "main": "dist/index.js",
+  "typings": "dist/index",
   "scripts": {
     "build": "tsc",
     "test": "jest ",
