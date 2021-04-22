@@ -7,18 +7,19 @@
   "scripts": {
     "build": "tsc",
     "test": "jest ",
-    "test:badges": "yarn run test  && jest-coverage-badges"
+    "test:badges": "yarn run test  && jest-coverage-badges",
+    "prepare": "husky install"
   },
   "lint-staged": {
     "*.ts": [
-    "prettier --write",
-    "eslint --fix"
+      "prettier --write",
+      "eslint --fix"
     ]
-    },
+  },
   "husky": {
     "hooks": {
-    "prepare-commit-msg": "exec < /dev/tty && git cz --hook || true",
-    "pre-commit": "lint-staged"
+      "prepare-commit-msg": "exec < /dev/tty && git cz --hook || true",
+      "pre-commit": "lint-staged"
     }
   },
   "keywords": [],
