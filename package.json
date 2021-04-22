@@ -1,7 +1,7 @@
 {
   "name": "flows",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.0-beta1",
+  "description": "Flows is a library that helps process-oriented communication between pages/components of a Single Page Application or Micro Front-end. ",
   "main": "lib/index.js",
   "typings": "lib/index",
   "scripts": {
@@ -22,9 +22,18 @@
       "pre-commit": "lint-staged"
     }
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["micro front-end","flow","process","front-end"],
+  "author": {
+    "name" : "Alessandro Avolio",
+    "email" : "social@avol.io",
+    "url" : "http://www.avol.io/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/avol-io/flows.git"
+  },
+  "license": "GPLV3",
+  "homepage": "https://github.com/avol-io/flows",
   "devDependencies": {
     "@types/jest": "^26.0.22",
     "husky": "^6.0.0",
